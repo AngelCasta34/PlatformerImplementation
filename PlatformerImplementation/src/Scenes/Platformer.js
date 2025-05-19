@@ -91,7 +91,7 @@ class Platformer extends Phaser.Scene {
             .setOrigin(0.5, 1);
         });
 
-        // overlap → EndScene
+        // EndScene
         this.physics.add.overlap(
             this.my.sprite.player,
             this.exitGroup,
