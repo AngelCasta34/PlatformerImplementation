@@ -1,3 +1,4 @@
+// src/Scenes/Platformer.js
 class Platformer extends Phaser.Scene {
     constructor() {
         super("platformerScene");
@@ -6,10 +7,10 @@ class Platformer extends Phaser.Scene {
     init() {
         this.ACCELERATION      = 100;
         this.DRAG              = 1800;
-        this.physics.world.gravity.y = 1500;
+        this.physics.world.gravity.y = 100;
         this.JUMP_VELOCITY     = -400;
         this.PARTICLE_VELOCITY = 50;
-        this.SCALE             = 4;
+        this.SCALE             = 5;
     }
 
     create() {
@@ -28,7 +29,7 @@ class Platformer extends Phaser.Scene {
         coinObjects.forEach(obj => {
             const frameIndex = obj.gid - firstGid;
             const coin = this.coinGroup.create(
-                obj.x + TILE_W/2,
+                obj.x + TILE_W / 2,
                 obj.y,
                 "tilemap_sheet",
                 frameIndex
@@ -52,7 +53,7 @@ class Platformer extends Phaser.Scene {
             this.coinGroup,
             (player, coin) => {
                 coin.destroy();
-                this.sound.play("sfx-coin");  
+                this.sound.play("sfx-coin");
             }
         );
 
@@ -69,13 +70,35 @@ class Platformer extends Phaser.Scene {
 
         // 5) WALK VFX
         this.my.vfx.walking = this.add.particles(0, 0, "kenny-particles", {
-            frame:    ['smoke_03','smoke_09'],
+            frame:    ['smoke_03', 'smoke_09'],
             scale:    { start: 0.015, end: 0.05 },
             lifespan: 350,
             alpha:    { start: 1, end: 0.1 },
         }).stop();
 
-        // 6) CAMERA
+        // 6) EXIT OBJECTS (using real GID)
+        this.exitGroup = this.physics.add.staticGroup();
+        const exitObjects = this.map.getObjectLayer("Objects").objects
+            .filter(o => o.name === "Exit" && o.gid);
+        exitObjects.forEach(o => {
+            const frameIndex = o.gid - firstGid;
+            this.exitGroup.create(
+                o.x + TILE_W / 2,
+                o.y,
+                "tilemap_sheet",
+                frameIndex
+            )
+            .setOrigin(0.5, 1);
+        });
+
+        // overlap → EndScene
+        this.physics.add.overlap(
+            this.my.sprite.player,
+            this.exitGroup,
+            () => this.scene.start("endScene")
+        );
+
+        // 7) CAMERA
         this.cameras.main
             .setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels)
             .startFollow(this.my.sprite.player, true, 0.25, 0.25)
@@ -87,12 +110,12 @@ class Platformer extends Phaser.Scene {
         const p   = this.my.sprite.player;
         const vfx = this.my.vfx.walking;
 
-        // left/right
+        // left/right movement
         if (this.aKey.isDown) {
             p.setAccelerationX(-this.ACCELERATION);
             p.resetFlip();
             p.anims.play('walk', true);
-            vfx.startFollow(p, p.displayWidth/2 - 10, p.displayHeight/2 - 5);
+            vfx.startFollow(p, p.displayWidth / 2 - 10, p.displayHeight / 2 - 5);
             vfx.setParticleSpeed(this.PARTICLE_VELOCITY, 0);
             if (p.body.blocked.down) vfx.start();
 
@@ -100,7 +123,7 @@ class Platformer extends Phaser.Scene {
             p.setAccelerationX(this.ACCELERATION);
             p.setFlip(true, false);
             p.anims.play('walk', true);
-            vfx.startFollow(p, -p.displayWidth/2 + 10, p.displayHeight/2 - 5);
+            vfx.startFollow(p, -p.displayWidth / 2 + 10, p.displayHeight / 2 - 5);
             vfx.setParticleSpeed(-this.PARTICLE_VELOCITY, 0);
             if (p.body.blocked.down) vfx.start();
 
@@ -117,7 +140,7 @@ class Platformer extends Phaser.Scene {
             p.body.setVelocityY(this.JUMP_VELOCITY);
         }
 
-        // restart
+        // restart current scene
         if (Phaser.Input.Keyboard.JustDown(this.rKey)) this.scene.restart();
     }
 }
